@@ -1,0 +1,38 @@
+import boto3
+
+def update_lambda_functions_env(old_value, new_value):
+    client = boto3.client('lambda')
+
+    # Paginate through all Lambda functions
+    paginator = client.get_paginator('list_functions')
+    for response in paginator.paginate():
+        for function in response['Functions']:
+            function_name = function['FunctionName']
+
+            try:
+                # Get function configuration to access environment variables
+                function_config = client.get_function_configuration(FunctionName=function_name)
+
+                # Check if the environment variables contain the old value
+                if 'Environment' in function_config:
+                    variables = function_config['Environment'].get('Variables', {})
+                    if any(value == old_value for value in variables.values()):
+                        # Update the environment variable
+                        for key, value in variables.items():
+                            if value == old_value:
+                                variables[key] = new_value
+
+                        # Apply the updated environment variables to the Lambda function
+                        response = client.update_function_configuration(
+                            FunctionName=function_name,
+                            Environment={'Variables': variables}
+                        )
+                        print(f"Updated environment variables for {function_name}")
+            except client.exceptions.ResourceNotFoundException as e:
+                print(f"Error retrieving configuration for function '{function_name}': {e}")
+
+# Replace 'VALUE' with the old value and 'VALUE' with the new value
+old_value_to_replace = '192.168.162.57'
+new_value_to_set = 'light.com'
+
+update_lambda_functions_env(old_value_to_replace, new_value_to_set)
