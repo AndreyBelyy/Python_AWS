@@ -25,7 +25,7 @@ def get_lambda_functions_with_env_value(env_value):
     return functions_with_env_value
 
 # Replace '192.168.10.1' with the desired environment variable value
-env_value_to_find = 'mpfbddev.macropay.mx'
+env_value_to_find = 'luz.mx'
 
 matching_functions = get_lambda_functions_with_env_value(env_value_to_find)
 print("Lambda functions with environment variable value 'mpfbddev.macropay.mx':")
