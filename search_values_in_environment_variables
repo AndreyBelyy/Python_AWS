@@ -1,0 +1,32 @@
+import boto3
+
+def get_lambda_functions_with_env_value(env_value):
+    client = boto3.client('lambda')
+    functions_with_env_value = []
+
+    # Paginate through all Lambda functions
+    paginator = client.get_paginator('list_functions')
+    for response in paginator.paginate():
+        for function in response['Functions']:
+            function_name = function['FunctionName']
+
+            try:
+                # Get function configuration to access environment variables
+                function_config = client.get_function_configuration(FunctionName=function_name)
+
+                # Check if the environment variables contain the specified value
+                if 'Environment' in function_config and 'Variables' in function_config['Environment']:
+                    variables = function_config['Environment']['Variables']
+                    if any(value == env_value for value in variables.values()):
+                        functions_with_env_value.append(function_name)
+            except client.exceptions.ResourceNotFoundException as e:
+                print(f"Error retrieving configuration for function '{function_name}': {e}")
+
+    return functions_with_env_value
+
+# Replace '192.168.10.1' with the desired environment variable value
+env_value_to_find = 'mpfbddev.macropay.mx'
+
+matching_functions = get_lambda_functions_with_env_value(env_value_to_find)
+print("Lambda functions with environment variable value 'mpfbddev.macropay.mx':")
+print(matching_functions)
