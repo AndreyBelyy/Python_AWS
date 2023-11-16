@@ -1,0 +1,32 @@
+import boto3
+
+def get_lambda_functions_with_env(env_value):
+    client = boto3.client('lambda')
+    functions_with_env = {}
+
+    # Paginate through all Lambda functions
+    paginator = client.get_paginator('list_functions')
+    for response in paginator.paginate():
+        for function in response['Functions']:
+            function_name = function['FunctionName']
+
+            try:
+                # Get function configuration to access environment variables
+                function_config = client.get_function_configuration(FunctionName=function_name)
+                
+                # Extract environment variables
+                if 'Environment' in function_config:
+                    environment_vars = function_config['Environment'].get('Variables', {})
+                    functions_with_env[function_name] = environment_vars
+            except client.exceptions.ResourceNotFoundException as e:
+                print(f"Error retrieving configuration for function '{function_name}': {e}")
+
+    return functions_with_env
+
+functions_with_env = get_lambda_functions_with_env(None)  # Pass None or any value if not filtering by specific env var
+for function_name, env_vars in functions_with_env.items():
+    print(f"Lambda function: {function_name}")
+    print("Environment variables:")
+    for key, value in env_vars.items():
+        print(f"{key}: {value}")
+    print("=" * 30)
