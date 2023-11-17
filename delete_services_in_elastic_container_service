@@ -1,0 +1,32 @@
+#delete service
+
+import boto3
+
+# Get all AWS regions
+ec2_client = boto3.client('ec2')
+regions = [region['RegionName'] for region in ec2_client.describe_regions()['Regions']]
+
+# Loop through each region
+for region in regions:
+    print(f"Region: {region}")
+
+    # Set the region for ECS client
+    ecs_client = boto3.client('ecs', region_name=region)
+
+    # Get ECS cluster names
+    response = ecs_client.list_clusters()
+    cluster_arns = response.get('clusterArns', [])
+
+    # Loop through each cluster
+    for arn in cluster_arns:
+        cluster_name = arn.split('/')[-1]  # Extract cluster name from ARN
+        print(f"Deleting services in Cluster: {cluster_name}")
+
+        # Get ECS service ARNs in the cluster
+        service_response = ecs_client.list_services(cluster=cluster_name)
+        service_arns = service_response.get('serviceArns', [])
+
+        # Delete ECS services in the cluster
+        for service_arn in service_arns:
+            print(f"Deleting Service ARN: {service_arn}")
+            ecs_client.delete_service(cluster=cluster_name, service=service_arn, force=True)
