@@ -1,0 +1,28 @@
+# Delete clusters in all the regions of the account
+
+import boto3
+
+# Create an ECS client
+ecs_client = boto3.client('ecs')
+
+# Get all AWS regions
+ec2_client = boto3.client('ec2')
+regions = [region['RegionName'] for region in ec2_client.describe_regions()['Regions']]
+
+# Loop through each region
+for region in regions:
+    print(f"Region: {region}")
+
+    # Set the region for ECS client
+    ecs_client = boto3.client('ecs', region_name=region)
+
+    # Get ECS cluster names
+    response = ecs_client.list_clusters()
+    cluster_arns = response.get('clusterArns', [])
+
+    # Delete ECS clusters
+    for arn in cluster_arns:
+        cluster_name = arn.split('/')[-1]  # Extract cluster name from ARN
+
+        print(f"Deleting Cluster: {cluster_name}")
+        ecs_client.delete_cluster(cluster=cluster_name)
