@@ -1,0 +1,26 @@
+#delete task definitions
+import boto3
+
+# Get all AWS regions
+ec2_client = boto3.client('ec2')
+regions = [region['RegionName'] for region in ec2_client.describe_regions()['Regions']]
+
+# Loop through each region
+for region in regions:
+    print(f"Region: {region}")
+
+    # Set the region for ECS client
+    ecs_client = boto3.client('ecs', region_name=region)
+
+    # Get ECS cluster names
+    response = ecs_client.list_clusters()
+
+
+    # Get ECS task definition ARNs in the cluster
+    task_definition_response = ecs_client.list_task_definitions()
+    task_definition_arns = task_definition_response.get('taskDefinitionArns', [])
+
+    # Deregister ECS task definitions in the cluster
+    for task_definition_arn in task_definition_arns:
+        print(f"Deregistering Task Definition ARN: {task_definition_arn}")
+        ecs_client.deregister_task_definition(taskDefinition=task_definition_arn)
