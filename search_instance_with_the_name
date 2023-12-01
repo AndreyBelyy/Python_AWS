@@ -1,0 +1,45 @@
+import boto3
+
+def list_instances_by_name(name_filter):
+    ec2 = boto3.client('ec2')
+
+    # Filter instances by running state
+    instances = ec2.describe_instances(Filters=[{'Name': 'instance-state-name', 'Values': ['running']}])
+
+    running_instances = []
+
+    # Process the response to extract instance details
+    for reservation in instances['Reservations']:
+        for instance in reservation['Instances']:
+            instance_id = instance['InstanceId']
+            instance_type = instance['InstanceType']
+            instance_state = instance['State']['Name']
+            instance_public_ip = instance.get('PublicIpAddress', 'N/A')
+            instance_private_ip = instance.get('PrivateIpAddress', 'N/A')
+
+            # Get instance name from tags
+            instance_name = ''
+            for tag in instance.get('Tags', []):
+                if tag['Key'] == 'Name':
+                    instance_name = tag['Value']
+                    break
+
+            # Check if the instance name matches the filter
+            if instance_name == name_filter:
+                running_instances.append({
+                    'Instance ID': instance_id,
+                    'Instance Name': instance_name,
+                    'Instance Type': instance_type,
+                    'State': instance_state,
+                    'Public IP': instance_public_ip,
+                    'Private IP': instance_private_ip
+                })
+
+    return running_instances
+
+if __name__ == "__main__":
+    instances_with_name_ABC = list_instances_by_name('SAG-QA')
+
+    print("Running EC2 Instances with Name 'SAG-QA':")
+    for instance in instances_with_name_ABC:
+        print(instance)
