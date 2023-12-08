@@ -1,0 +1,56 @@
+import requests
+
+def search_repos(organization, access_token):
+    page = 1
+    while True:
+        # Fetch repositories for the organization with pagination
+        response = requests.get(f"https://api.github.com/orgs/{organization}/repos?per_page=100&page={page}", headers={"Authorization": f"token {access_token}"})
+        repos = response.json()
+
+        # Check if the repos list is empty (no more repositories on this page)
+        if not repos:
+            break
+
+        # Loop through each repository on the current page
+        for repo in repos:
+            print(f"Checking repository: {repo['full_name']}")
+
+            # Fetch the contents of the repository
+            contents_url = repo['contents_url'].replace("{+path}", "")
+            contents_response = requests.get(contents_url, headers={"Authorization": f"token {access_token}"})
+            contents = contents_response.json()
+
+            # Check if the repository is empty (no contents)
+            if not contents or isinstance(contents, dict) and 'message' in contents and contents['message'] == 'Not Found':
+                print(f"Repository {repo['full_name']} is empty or not found.")
+                continue
+
+            # Loop through the contents (files/directories) of the repository
+            for item in contents:
+                if isinstance(item, dict) and 'type' in item and item['type'] == 'file':
+                    # Check if 'download_url' is present and valid
+                    if 'download_url' in item and item['download_url']:
+                        # Fetch the file content
+                        file_response = requests.get(item['download_url'], headers={"Authorization": f"token {access_token}"})
+                        if file_response.ok:
+                            file_content = file_response.text
+
+                            # Search for the string in the file content
+                            if '192.168.162.3' in file_content:
+                                print(f"String found in repository: {repo['full_name']}")
+                                print(f"File URL: {item['html_url']}")
+                                # Record the repository and file URL where the string is found
+                                with open('repositories_with_string.txt', 'a') as file:
+                                    file.write(f"{repo['full_name']}, {item['html_url']}\n")
+                        else:
+                            print(f"Failed to fetch content for file: {item['name']} in {repo['full_name']}")
+
+        # Move to the next page
+        page += 1
+
+# Provide your GitHub organization and access token
+organization_name = "NAME"
+github_access_token = "TOKEN"
+
+# Call the function
+search_repos(organization_name, github_access_token)
