@@ -1,0 +1,86 @@
+import boto3
+
+def terminate_instances_by_name(name_filter):
+    ec2 = boto3.client('ec2')
+
+    # Filter instances by running state and name
+    instances = ec2.describe_instances(
+        Filters=[
+            {'Name': 'instance-state-name', 'Values': ['running']},
+            {'Name': 'tag:Name', 'Values': [name_filter]}
+        ]
+    )
+
+    running_instances = []
+
+    # Extract instance IDs for termination
+    for reservation in instances['Reservations']:
+        for instance in reservation['Instances']:
+            instance_id = instance['InstanceId']
+            running_instances.append(instance_id)
+
+    # Terminate instances matching the name filter
+    if running_instances:
+        ec2.terminate_instances(InstanceIds=running_instances)
+        print(f"Terminated {len(running_instances)} instances with name '{name_filter}'")
+    else:
+        print(f"No instances found with name '{name_filter}'")
+
+if __name__ == "__main__":
+    # Replace 'BuilderInstance' with the desired instance name filter
+    terminate_instances_by_name('BuilderInstance')
+
+
+######################################################################################################
+
+Unchecked version with all regions in account
+
+######################################################################################################
+
+
+import boto3
+
+def get_all_regions():
+    ec2_client = boto3.client('ec2', region_name='us-east-1')  # Choose a default region for the client
+
+    # Retrieve all AWS regions using the EC2 client
+    aws_regions = [region['RegionName'] for region in ec2_client.describe_regions()['Regions']]
+    return aws_regions
+
+def terminate_instances_by_name(name_filter, regions):
+    for region in regions:
+        print(f"Searching for instances with name '{name_filter}' in region '{region}'")
+        ec2 = boto3.client('ec2', region_name=region)
+
+        # Filter instances by running state and name
+        instances = ec2.describe_instances(
+            Filters=[
+                {'Name': 'instance-state-name', 'Values': ['running']},
+                {'Name': 'tag:Name', 'Values': [name_filter]}
+            ]
+        )
+
+        running_instances = []
+
+        # Extract instance IDs for termination
+        for reservation in instances['Reservations']:
+            for instance in reservation['Instances']:
+                instance_id = instance['InstanceId']
+                running_instances.append(instance_id)
+
+        # Terminate instances matching the name filter
+        if running_instances:
+            ec2.terminate_instances(InstanceIds=running_instances)
+            print(f"Terminated {len(running_instances)} instances with name '{name_filter}' in region '{region}'")
+        else:
+            print(f"No instances found with name '{name_filter}' in region '{region}'")
+
+if __name__ == "__main__":
+    # Replace 'BuilderInstance' with the desired instance name filter
+    instance_name_to_terminate = 'BuilderInstance'
+
+    # Get all available AWS regions
+    all_regions = get_all_regions()
+
+    # Terminate instances by name in each region
+    terminate_instances_by_name(instance_name_to_terminate, all_regions)
